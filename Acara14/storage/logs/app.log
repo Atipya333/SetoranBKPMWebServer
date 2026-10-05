@@ -1,0 +1,5 @@
+[2026-10-04 12:15:12] ERROR: Error saat mengambil data mahasiswa: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'siakademik.mahasiswa_simulasi' doesn't exist
+[2026-10-04 12:31:40] ERROR: Error saat mengambil data mahasiswa: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'siakademik.mahasiswa_simulasi' doesn't exist
+[2026-10-04 12:31:41] ERROR: Error saat mengambil data mahasiswa: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'siakademik.mahasiswa_simulasi' doesn't exist
+[2026-10-04 12:31:42] ERROR: Error saat mengambil data mahasiswa: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'siakademik.mahasiswa_simulasi' doesn't exist
+[2026-10-04 12:31:42] ERROR: Error saat mengambil data mahasiswa: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'siakademik.mahasiswa_simulasi' doesn't exist
