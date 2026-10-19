@@ -1,0 +1,5 @@
+
+RewriteEngine On
+
+RewriteRule ^api/mahasiswa/?$ api/mahasiswa.php [QSA,L]
+RewriteRule ^api/mahasiswa/([0-9]+)/?$ api/mahasiswa.php?id=$1 [QSA,L]
