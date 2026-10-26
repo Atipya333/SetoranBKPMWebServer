@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body { font-family: sans-serif; margin: 24px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+        th, td { border: 1px solid #999; padding: 8px; text-align: left; }
+        th { background: #eee; }
+        .bar { display: flex; justify-content: space-between; align-items: center; }
+    </style>
+</head>
+<body>
+    <script>
+        // Langkah 4: proteksi halaman
+        if (!localStorage.getItem('token')) {
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <div class="bar">
+        <h1>Dashboard</h1>
+        <div>
+            <span id="info-role"></span>
+            <button id="btn-logout">Logout</button>
+        </div>
+    </div>
+
+    <p>Total mahasiswa: <strong id="total">...</strong></p>
+
+    <button id="btn-tambah" class="aksi-admin">Tambah</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>NIM</th><th>Nama</th><th>Program Studi</th>
+                <th class="aksi-admin">Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="isi-tabel"></tbody>
+    </table>
+
+    <script>
+        const BASE_URL = 'http://localhost/Code/Acara25/public';
+        const token   = localStorage.getItem('token');
+        const role    = localStorage.getItem('role');
+        const isAdmin = role === 'admin';
+
+        document.querySelector('#info-role').textContent = `Login sebagai: ${role}  `;
+
+        // Tugas 2: sembunyikan tombol Tambah/Ubah/Hapus jika bukan admin
+        if (!isAdmin) {
+            document.querySelectorAll('.aksi-admin').forEach(el => el.style.display = 'none');
+        }
+
+        // Tugas 1: Logout
+        document.querySelector('#btn-logout').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('role');
+            window.location.href = 'login.html';
+        });
+
+        // Helper request dengan token
+        async function api(path, method = 'GET', body = null) {
+            const res = await fetch(`${BASE_URL}${path}`, {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: body ? JSON.stringify(body) : null,
+            });
+            const hasil = await res.json();
+            if (res.status === 401) {
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+            return { status: res.status, ...hasil };
+        }
+
+        async function muat() {
+            const hasil = await api('/mahasiswa');
+            const tbody = document.querySelector('#isi-tabel');
+            tbody.innerHTML = '';
+            if (!hasil.success) { alert(hasil.message); return; }
+
+            // Langkah 5: ringkasan data
+            document.querySelector('#total').textContent = hasil.data.length;
+
+            hasil.data.forEach(m => {
+                const tr = document.createElement('tr');
+                [m.nim, m.nama, m.prodi].forEach(teks => {
+                    const td = document.createElement('td');
+                    td.textContent = teks;
+                    tr.appendChild(td);
+                });
+
+                const tdAksi = document.createElement('td');
+                tdAksi.className = 'aksi-admin';
+                if (!isAdmin) tdAksi.style.display = 'none';
+
+                const btnUbah = document.createElement('button');
+                btnUbah.textContent = 'Ubah';
+                btnUbah.onclick = () => ubah(m);
+
+                const btnHapus = document.createElement('button');
+                btnHapus.textContent = 'Hapus';
+                btnHapus.onclick = () => hapus(m.id);
+
+                tdAksi.append(btnUbah, btnHapus);
+                tr.appendChild(tdAksi);
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function tambah() {
+            const nim   = prompt('NIM (9 digit):');
+            const nama  = prompt('Nama:');
+            const prodi = prompt('Program Studi:');
+            if (!nim || !nama || !prodi) return;
+            const hasil = await api('/mahasiswa', 'POST', { nim, nama, prodi });
+            alert(hasil.message);
+            muat();
+        }
+
+        async function ubah(m) {
+            const nim   = prompt('NIM (9 digit):', m.nim);
+            const nama  = prompt('Nama:', m.nama);
+            const prodi = prompt('Program Studi:', m.prodi);
+            if (!nim || !nama || !prodi) return;
+            const hasil = await api(`/mahasiswa?id=${m.id}`, 'PUT', { nim, nama, prodi });
+            alert(hasil.message);
+            muat();
+        }
+
+        async function hapus(id) {
+            if (!confirm('Yakin hapus data ini?')) return;
+            const hasil = await api(`/mahasiswa?id=${id}`, 'DELETE');
+            alert(hasil.message);
+            muat();
+        }
+
+        document.querySelector('#btn-tambah').addEventListener('click', tambah);
+        muat();
+    </script>
+</body>
+</html>
