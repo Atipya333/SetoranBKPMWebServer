@@ -1,5 +1,5 @@
 // Sesuaikan dengan alamat project-mu di localhost
-const BASE_URL = 'http://localhost/Code/Acara25/public';
+const BASE_URL = 'http://localhost/Code/Acara26/public';
 
 function tampilkanPesan(tbody, teks) {
     tbody.innerHTML = `<tr><td colspan="3" class="pesan">${teks}</td></tr>`;
