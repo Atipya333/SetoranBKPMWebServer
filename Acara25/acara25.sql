@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Oct 24, 2026 at 04:46 AM
+-- Generation Time: Oct 26, 2026 at 06:50 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `acara21`
+-- Database: `acara25`
 --
 
 -- --------------------------------------------------------
@@ -61,7 +61,8 @@ CREATE TABLE `mahasiswa` (
 --
 
 INSERT INTO `mahasiswa` (`id`, `nim`, `nama`, `prodi`, `created_at`) VALUES
-(1, '2201001', 'Andi Saputra', 'Teknik Mesin', '2026-10-21 01:59:34');
+(1, '2201001', 'Andi Saputra', 'Teknik Mesin', '2026-10-21 01:59:34'),
+(3, '111111111', 'tiara', 'TIF', '2026-10-26 02:42:38');
 
 -- --------------------------------------------------------
 
@@ -125,7 +126,7 @@ ALTER TABLE `buku`
 -- AUTO_INCREMENT for table `mahasiswa`
 --
 ALTER TABLE `mahasiswa`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `users`
