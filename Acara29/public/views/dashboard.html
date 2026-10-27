@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body { font-family: sans-serif; margin: 24px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+        th, td { border: 1px solid #999; padding: 8px; text-align: left; }
+        th { background: #eee; }
+        .bar { display: flex; justify-content: space-between; align-items: center; }
+        .foto-kecil { width: 60px; height: 60px; object-fit: cover; }
+        .pesan { text-align: center; color: #555; }
+        #notif { display: none; padding: 10px 14px; margin: 12px 0; border-radius: 4px; }
+        #notif.ok { display: block; background: #e6f4ea; color: #1b5e20; }
+        #notif.gagal { display: block; background: #fdecea; color: #b00020; }
+    </style>
+</head>
+<body>
+    <script>
+        if (!localStorage.getItem('token')) {
+            window.location.href = 'login.html';
+        }
+    </script>
+
+    <div class="bar">
+        <h1>Dashboard</h1>
+        <div>
+            <span id="info-role"></span>
+            <button id="btn-logout">Logout</button>
+        </div>
+    </div>
+
+    <div id="notif"></div>
+
+    <p>Total mahasiswa: <strong id="total">...</strong></p>
+
+    <a href="form_tambah.html" class="aksi-admin"><button>Tambah</button></a>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Foto</th><th>NIM</th><th>Nama</th><th>Program Studi</th>
+                <th class="aksi-admin">Aksi</th>
+            </tr>
+        </thead>
+        <tbody id="isi-tabel"></tbody>
+    </table>
+
+    <script src="helper.js"></script>
+    <script>
+        // Sesuaikan dengan nama folder project-mu
+        const BASE_URL = 'http://localhost/Code/Acara29/public';
+        const token   = localStorage.getItem('token');
+        const role    = localStorage.getItem('role');
+        const isAdmin = role === 'admin';
+        const tbody   = document.querySelector('#isi-tabel');
+
+        document.querySelector('#info-role').textContent = `Login sebagai: ${role}  `;
+
+        if (!isAdmin) {
+            document.querySelectorAll('.aksi-admin').forEach(el => el.style.display = 'none');
+        }
+
+        document.querySelector('#btn-logout').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('role');
+            window.location.href = 'login.html';
+        });
+
+        function notif(pesan, sukses) {
+            const el = document.querySelector('#notif');
+            el.textContent = pesan;
+            el.className = sukses ? 'ok' : 'gagal';
+            clearTimeout(notif.timer);
+            notif.timer = setTimeout(() => { el.className = ''; }, 4000);
+        }
+
+        // Mengembalikan true jika token ditolak (sekaligus mengarahkan ke login)
+        function cekUnauthorized(res) {
+            if (res.status === 401) {
+                localStorage.clear();
+                window.location.href = 'login.html';
+                return true;
+            }
+            return false;
+        }
+
+        function tampilkanPesan(teks) {
+            tbody.innerHTML = `<tr><td colspan="5" class="pesan">${escapeHTML(teks)}</td></tr>`;
+        }
+
+        // Langkah 2: semua data dari Controller di-escape sebelum masuk innerHTML
+        function renderTabel(data) {
+            tbody.innerHTML = data.map(m => {
+                const foto = m.foto
+                    ? `<img class="foto-kecil" src="${BASE_URL}/uploads/${escapeHTML(m.foto)}" alt="${escapeHTML(m.nama)}">`
+                    : '-';
+                const aksi = `
+                    <td class="aksi-admin" ${isAdmin ? '' : 'style="display:none"'}>
+                        <button data-aksi="ubah" data-id="${escapeHTML(m.id)}">Ubah</button>
+                        <button data-aksi="hapus" data-id="${escapeHTML(m.id)}">Hapus</button>
+                    </td>`;
+                return `<tr>
+                    <td>${foto}</td>
+                    <td>${escapeHTML(m.nim)}</td>
+                    <td>${escapeHTML(m.nama)}</td>
+                    <td>${escapeHTML(m.prodi)}</td>
+                    ${aksi}
+                </tr>`;
+            }).join('');
+        }
+
+        // Karena tombol dibuat lewat innerHTML, klik ditangani dengan event delegation
+        tbody.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-aksi]');
+            if (!btn) return;
+            const id = btn.dataset.id;
+            if (btn.dataset.aksi === 'ubah') {
+                window.location.href = `form_edit.html?id=${encodeURIComponent(id)}`;
+            } else if (btn.dataset.aksi === 'hapus') {
+                hapusData(id, btn);
+            }
+        });
+
+        // Langkah 1: indikator loading
+        async function muatDataMahasiswa() {
+            tampilkanPesan('Memuat data...');
+            try {
+                const res = await fetchDenganRetry(`${BASE_URL}/mahasiswa`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (cekUnauthorized(res)) return;
+                const hasil = await res.json();
+
+                if (!hasil.success) {
+                    tampilkanPesan('Gagal memuat data: ' + (hasil.message || 'status ' + res.status));
+                    notif(hasil.message || 'Gagal memuat data.', false);
+                    return;
+                }
+
+                document.querySelector('#total').textContent = hasil.data.length;
+
+                if (hasil.data.length === 0) {
+                    tampilkanPesan('Belum ada data');
+                    return;
+                }
+                renderTabel(hasil.data);
+            } catch (err) {
+                tampilkanPesan('Gagal memuat data: ' + err.message);
+                notif('Gagal memuat data.', false);
+            }
+        }
+
+        // Langkah 3: try-catch-finally + umpan balik pada tombol Hapus
+        async function hapusData(id, btn) {
+            if (!confirm('Hapus data ini?')) return;
+
+            const teksAsli = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Menghapus...';
+
+            try {
+                const res = await fetch(`${BASE_URL}/mahasiswa?id=${encodeURIComponent(id)}`, {
+                    method: 'DELETE', // diteruskan Router ke MahasiswaController::destroy($id)
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (cekUnauthorized(res)) return;
+                const hasil = await res.json();
+                notif(hasil.message || (hasil.success ? 'Data dihapus.' : 'Gagal menghapus data.'), hasil.success);
+            } catch (err) {
+                notif('Tidak dapat terhubung ke server.', false);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = teksAsli;
+                muatDataMahasiswa();
+            }
+        }
+
+        // Tampilkan notifikasi kiriman dari form_tambah / form_edit
+        try {
+            const flash = sessionStorage.getItem('flash');
+            if (flash) {
+                const f = JSON.parse(flash);
+                notif(f.teks, f.ok);
+                sessionStorage.removeItem('flash');
+            }
+        } catch (e) { /* abaikan flash yang rusak */ }
+
+        muatDataMahasiswa();
+    </script>
+</body>
+</html>
